@@ -989,6 +989,7 @@ body {
   width: 100%;
 }
 
+label.upload-button.camera-button,
 .upload-button.camera-button,
 .upload-button.gallery-button {
   flex: 1;

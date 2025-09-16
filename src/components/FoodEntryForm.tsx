@@ -4,7 +4,6 @@ import { FoodEntry } from '../types';
 import { addFoodEntry } from '../utils/storage';
 import { recognizeFoodFromImage, estimateNutritionByName } from '../services/aiService';
 import { format } from 'date-fns';
-import CameraCapture from './CameraCapture';
 import { compressImage, checkStorageUsage } from '../utils/imageUtils';
 
 interface FoodEntryFormProps {
@@ -23,7 +22,6 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
   const [time, setTime] = useState(format(new Date(), 'HH:mm'));
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
-  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processImage = async (imageBase64: string, file?: File) => {
@@ -228,15 +226,7 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
   };
 
   return (
-    <>
-      {showCamera && (
-        <CameraCapture
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
-      )}
-
-      <div className="food-entry-form">
+    <div className="food-entry-form">
         <h2>음식 기록하기</h2>
         <form onSubmit={handleSubmit}>
           <div className="image-upload-section">
@@ -262,18 +252,21 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
               </div>
             ) : (
               <div className="upload-buttons">
-                <button
-                  type="button"
-                  className="upload-button camera-button"
-                  onClick={() => setShowCamera(true)}
-                >
+                <label className="upload-button camera-button">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
                   <Smartphone size={24} />
                   <span>카메라로 촬영</span>
                   <div className="ai-badge">
                     <Sparkles size={16} />
                     <span>AI 자동 인식</span>
                   </div>
-                </button>
+                </label>
                 <button
                   type="button"
                   className="upload-button gallery-button"
@@ -414,7 +407,6 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
         </button>
       </form>
     </div>
-    </>
   );
 };
 
