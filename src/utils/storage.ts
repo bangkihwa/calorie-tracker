@@ -1,4 +1,5 @@
 import { FoodEntry, DailyGoal } from '../types';
+import { cleanOldImages } from './imageUtils';
 
 const FOOD_ENTRIES_KEY = 'calorie_tracker_entries';
 const DAILY_GOAL_KEY = 'calorie_tracker_goal';
@@ -51,10 +52,33 @@ export const getFoodEntries = (): FoodEntry[] => {
 
 export const saveFoodEntries = (entries: FoodEntry[]) => {
   try {
-    setItem(FOOD_ENTRIES_KEY, JSON.stringify(entries));
-    console.log('Food entries saved:', entries.length);
-  } catch (e) {
+    // 오래된 이미지 정리 (저장 공간 확보)
+    const cleanedEntries = cleanOldImages(entries);
+
+    const dataToSave = JSON.stringify(cleanedEntries);
+    const sizeInMB = (dataToSave.length / 1024 / 1024).toFixed(2);
+    console.log(`Saving ${cleanedEntries.length} entries, size: ${sizeInMB}MB`);
+
+    setItem(FOOD_ENTRIES_KEY, dataToSave);
+    console.log('Food entries saved successfully');
+  } catch (e: any) {
     console.error('Error saving food entries:', e);
+
+    // 용량 초과 시 이미지 제거 후 재시도
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      console.log('Storage quota exceeded, removing images...');
+      const entriesWithoutImages = entries.map(entry => ({ ...entry, imageUrl: '' }));
+
+      try {
+        setItem(FOOD_ENTRIES_KEY, JSON.stringify(entriesWithoutImages));
+        console.log('Saved without images');
+      } catch (retryError) {
+        console.error('Failed even without images:', retryError);
+        throw retryError;
+      }
+    } else {
+      throw e;
+    }
   }
 };
 

@@ -5,6 +5,7 @@ import { addFoodEntry } from '../utils/storage';
 import { recognizeFoodFromImage, estimateNutritionByName } from '../services/aiService';
 import { format } from 'date-fns';
 import CameraCapture from './CameraCapture';
+import { compressImage, checkStorageUsage } from '../utils/imageUtils';
 
 interface FoodEntryFormProps {
   onEntryAdded: () => void;
@@ -26,8 +27,14 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processImage = async (imageBase64: string, file?: File) => {
-    setImageUrl(imageBase64);
-    setIsAnalyzing(true);
+    try {
+      // 이미지 압축
+      console.log('Compressing image...');
+      const compressedImage = await compressImage(imageBase64);
+      console.log('Image compressed successfully');
+
+      setImageUrl(compressedImage);
+      setIsAnalyzing(true);
 
     try {
       // Google Gemini API를 사용한 음식 인식
@@ -46,7 +53,7 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
               {
                 inlineData: {
                   mimeType: file?.type || 'image/jpeg',
-                  data: imageBase64.split(',')[1]
+                  data: compressedImage.split(',')[1]
                 }
               }
             ]
@@ -87,7 +94,7 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
     } catch (error) {
       console.error('이미지 분석 에러:', error);
       // API 호출 실패 시 로컬 데이터베이스 사용
-      const results = await recognizeFoodFromImage(imageBase64);
+      const results = await recognizeFoodFromImage(compressedImage);
       if (results.length > 0) {
         setDetectedFoods(results);
         const firstFood = results[0];
@@ -97,6 +104,9 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
         setProtein(firstFood.protein || 0);
         setFat(firstFood.fat || 0);
       }
+    } catch (compressionError) {
+      console.error('Image processing error:', compressionError);
+      alert('이미지 처리 중 오류가 발생했습니다.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -172,14 +182,28 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
       imageUrl
     };
 
+    // 저장 전 스토리지 체크
+    const storage = checkStorageUsage();
+    if (!storage.available) {
+      alert('저장 공간이 부족합니다. 오래된 기록을 삭제해주세요.');
+      return;
+    }
+
     console.log('Saving entry:', entry);
 
     try {
       addFoodEntry(entry);
       console.log('Entry saved successfully');
+      alert('음식이 성공적으로 기록되었습니다!');
     } catch (error) {
       console.error('Failed to save entry:', error);
-      alert('저장에 실패했습니다. 다시 시도해주세요.');
+
+      // 더 구체적인 에러 메시지
+      if (error && error.toString().includes('QuotaExceeded')) {
+        alert('저장 공간이 가득 찼습니다. 오래된 기록을 삭제한 후 다시 시도해주세요.');
+      } else {
+        alert('저장에 실패했습니다. 이미지 크기를 줄이거나 이미지 없이 저장해보세요.');
+      }
       return;
     }
 
