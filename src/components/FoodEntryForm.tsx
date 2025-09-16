@@ -36,9 +36,9 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
       setImageUrl(compressedImage);
       setIsAnalyzing(true);
 
-    try {
-      // Google Gemini API를 사용한 음식 인식
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+      try {
+        // Google Gemini API를 사용한 음식 인식
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,23 +91,25 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
           setFat(nutrition.fat);
         }
       }
-    } catch (error) {
-      console.error('이미지 분석 에러:', error);
-      // API 호출 실패 시 로컬 데이터베이스 사용
-      const results = await recognizeFoodFromImage(compressedImage);
-      if (results.length > 0) {
-        setDetectedFoods(results);
-        const firstFood = results[0];
-        setFoodName(firstFood.name);
-        setCalories(firstFood.calories || 0);
-        setCarbs(firstFood.carbs || 0);
-        setProtein(firstFood.protein || 0);
-        setFat(firstFood.fat || 0);
+      } catch (error) {
+        console.error('이미지 분석 에러:', error);
+        // API 호출 실패 시 로컬 데이터베이스 사용
+        const results = await recognizeFoodFromImage(compressedImage);
+        if (results.length > 0) {
+          setDetectedFoods(results);
+          const firstFood = results[0];
+          setFoodName(firstFood.name);
+          setCalories(firstFood.calories || 0);
+          setCarbs(firstFood.carbs || 0);
+          setProtein(firstFood.protein || 0);
+          setFat(firstFood.fat || 0);
+        }
+      } finally {
+        setIsAnalyzing(false);
       }
     } catch (compressionError) {
       console.error('Image processing error:', compressionError);
       alert('이미지 처리 중 오류가 발생했습니다.');
-    } finally {
       setIsAnalyzing(false);
     }
   };
