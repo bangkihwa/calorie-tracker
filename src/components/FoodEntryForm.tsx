@@ -151,21 +151,39 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!foodName.trim()) {
+      alert('음식명을 입력해주세요.');
+      return;
+    }
+
+    // 유니크한 ID 생성 (timestamp + random)
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const entry: FoodEntry = {
-      id: Date.now().toString(),
+      id: uniqueId,
       date: date,
       time: time,
-      foodName,
+      foodName: foodName.trim(),
       servings,
-      calories,
-      carbs,
-      protein,
-      fat,
+      calories: Math.max(0, calories),
+      carbs: Math.max(0, carbs),
+      protein: Math.max(0, protein),
+      fat: Math.max(0, fat),
       imageUrl
     };
 
-    addFoodEntry(entry);
+    console.log('Saving entry:', entry);
 
+    try {
+      addFoodEntry(entry);
+      console.log('Entry saved successfully');
+    } catch (error) {
+      console.error('Failed to save entry:', error);
+      alert('저장에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+
+    // 폼 초기화
     setFoodName('');
     setServings(1);
     setCalories(0);
@@ -173,10 +191,14 @@ const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onEntryAdded }) => {
     setProtein(0);
     setFat(0);
     setImageUrl('');
-    setTime(format(new Date(), 'HH:mm'));
     setDetectedFoods([]);
+    // 날짜와 시간은 유지 (연속 입력 편의성)
+    setTime(format(new Date(), 'HH:mm'));
 
-    onEntryAdded();
+    // 부모 컴포넌트에 알림
+    setTimeout(() => {
+      onEntryAdded();
+    }, 100);
   };
 
   return (

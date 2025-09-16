@@ -60,13 +60,33 @@ export const saveFoodEntries = (entries: FoodEntry[]) => {
 
 export const addFoodEntry = (entry: FoodEntry) => {
   try {
+    console.log('Adding food entry:', entry);
     const entries = getFoodEntries();
+    console.log('Current entries count:', entries.length);
+
+    // 중복 ID 체크
+    const exists = entries.some(e => e.id === entry.id);
+    if (exists) {
+      console.error('Duplicate entry ID detected:', entry.id);
+      entry.id = `${entry.id}_${Date.now()}`;
+    }
+
     entries.push(entry);
     saveFoodEntries(entries);
-    console.log('Food entry added:', entry);
+
+    // 저장 확인
+    const savedEntries = getFoodEntries();
+    const savedEntry = savedEntries.find(e => e.id === entry.id);
+    if (savedEntry) {
+      console.log('✅ Food entry successfully saved:', savedEntry);
+      console.log('Total entries after save:', savedEntries.length);
+    } else {
+      throw new Error('Entry was not saved properly');
+    }
   } catch (e) {
-    console.error('Error adding food entry:', e);
+    console.error('❌ Error adding food entry:', e);
     alert('음식 기록 저장에 실패했습니다. 다시 시도해주세요.');
+    throw e;
   }
 };
 
